@@ -6,12 +6,15 @@ import { findExistingImport, recordImport } from '../collections/imports.js'
 import { analyzeRequiredFields, buildImportData, isTargetUploadCollection } from '../fields/required.js'
 import { createOAuthClient, getAuthorizationUrl, getGoogleEmail, resolveGoogleConfig } from '../google/oauth.js'
 import {
+  cachePickedMediaItems,
   createPickerSession,
   deletePickerSession,
   downloadMediaBytes,
+  downloadThumbnailBytes,
+  getPickedMediaItemsCached,
   getPickerSession,
-  getThumbnailUrl,
   listPickedMediaItems,
+  previewThumbnailPath,
 } from '../google/picker.js'
 import { signValue, verifySignedValue } from '../google/signing.js'
 import {
@@ -296,12 +299,13 @@ export function createPluginEndpoints(ctx: PluginContext): Endpoint[] {
 
           if (session.mediaItemsSet) {
             const items = await listPickedMediaItems(accessToken, sessionId)
+            cachePickedMediaItems(`${req.user?.id}:${sessionId}`, items)
             mediaItems = items.map((item) => ({
               id: item.id,
               type: item.type,
               filename: item.mediaFile?.filename,
               mimeType: item.mediaFile?.mimeType,
-              thumbnailUrl: getThumbnailUrl(item),
+              thumbnailUrl: previewThumbnailPath(sessionId, item.id),
             }))
           }
 
@@ -316,6 +320,51 @@ export function createPluginEndpoints(ctx: PluginContext): Endpoint[] {
       },
       method: 'get',
       path: '/google-photos/sessions/:id',
+    },
+    {
+      handler: async (req) => {
+        const unauthorized = requireUser(req)
+        if (unauthorized) {
+          return unauthorized
+        }
+
+        const sessionId = getRouteParam(req, 'id')
+        const itemId = getRouteParam(req, 'itemId')
+        if (!sessionId || !itemId) {
+          return json({ error: 'Missing session or item id' }, 400)
+        }
+
+        try {
+          const google = resolveGoogleConfig(ctx.options, req)
+          const { accessToken } = await getValidAccessToken({
+            config: google,
+            payload: req.payload,
+            req,
+          })
+          const items = await getPickedMediaItemsCached(
+            accessToken,
+            sessionId,
+            `${req.user?.id}:${sessionId}`,
+          )
+          const item = items.find((mediaItem) => mediaItem.id === itemId)
+          if (!item) {
+            return json({ error: 'Picked item was not found in this session' }, 404)
+          }
+
+          const { buffer, mimeType } = await downloadThumbnailBytes(item, accessToken)
+          return new Response(new Uint8Array(buffer), {
+            headers: {
+              'Cache-Control': 'private, max-age=60',
+              'Content-Type': mimeType,
+            },
+          })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to load thumbnail'
+          return json({ error: message }, 500)
+        }
+      },
+      method: 'get',
+      path: '/google-photos/sessions/:id/items/:itemId/thumbnail',
     },
     {
       handler: async (req) => {

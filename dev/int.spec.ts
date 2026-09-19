@@ -9,6 +9,7 @@ import { buildPluginSchemaStatements } from '../src/db/ensureSchema.js'
 import { analyzeRequiredFields, isTargetUploadCollection } from '../src/fields/required.js'
 import { decryptSecret, encryptSecret } from '../src/google/crypto.js'
 import { hasPickerScope } from '../src/google/oauth.js'
+import { getThumbnailUrl, previewThumbnailPath } from '../src/google/picker.js'
 import { PLUGIN_PACKAGE_NAME } from '../src/index.js'
 
 let payload: Payload
@@ -195,5 +196,22 @@ describe('picker OAuth scopes', () => {
       ),
     ).toBe(true)
     expect(hasPickerScope('https://www.googleapis.com/auth/userinfo.email')).toBe(false)
+  })
+})
+
+describe('picker previews', () => {
+  test('builds a cropped Google thumbnail URL that still requires a bearer token', () => {
+    expect(
+      getThumbnailUrl({
+        id: 'item-1',
+        mediaFile: { baseUrl: 'https://lh3.googleusercontent.com/p/AF123' },
+      }),
+    ).toBe('https://lh3.googleusercontent.com/p/AF123=w256-h256-c')
+  })
+
+  test('exposes thumbnails through an authed plugin path instead of Google baseUrl', () => {
+    expect(previewThumbnailPath('session/1', 'item/2')).toBe(
+      '/google-photos/sessions/session%2F1/items/item%2F2/thumbnail',
+    )
   })
 })

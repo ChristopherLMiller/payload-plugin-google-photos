@@ -1,6 +1,6 @@
 'use client'
 
-import { Banner, Button, Drawer, Pill, ShimmerEffect, Thumbnail, toast, useConfig, useModal } from '@payloadcms/ui'
+import { Banner, Button, Drawer, Pill, ShimmerEffect, toast, useConfig, useModal } from '@payloadcms/ui'
 import { useRouter } from 'next/navigation.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -157,6 +157,57 @@ function PromptFieldControl({
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+function PickerLaunchButtons({
+  blocked,
+  connected,
+  locked,
+  onConnect,
+  onLaunch,
+  pickerUrl,
+  waiting,
+}: {
+  blocked: boolean
+  connected: boolean
+  locked: boolean
+  onConnect: () => void
+  onLaunch: () => void
+  pickerUrl: null | string
+  waiting: boolean
+}) {
+  return (
+    <div className={styles.pickActions}>
+      {!connected ? (
+        <Button
+          buttonStyle="pill"
+          disabled={locked}
+          margin={false}
+          onClick={onConnect}
+          size="small"
+          type="button"
+        >
+          Connect Google Photos
+        </Button>
+      ) : (
+        <Button
+          buttonStyle="pill"
+          disabled={locked || blocked}
+          margin={false}
+          onClick={onLaunch}
+          size="small"
+          type="button"
+        >
+          {waiting ? 'Waiting for Google Photos…' : 'Select from Google Photos'}
+        </Button>
+      )}
+      {pickerUrl ? (
+        <Button buttonStyle="pill" el="anchor" margin={false} newTab size="small" url={pickerUrl}>
+          Open picker
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -485,60 +536,23 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
             {loading ? <ShimmerEffect height="8rem" /> : null}
 
             {!loading && !hasPicked ? (
-              <div className={`file-field ${styles.fileField}`}>
-                <div className="file-field__upload">
-                  <div className="dropzone">
-                    <div className="file-field__dropzoneContent">
-                      <div className="file-field__dropzoneButtons">
-                        {!status?.connected ? (
-                          <Button
-                            buttonStyle="pill"
-                            disabled={locked}
-                            margin={false}
-                            onClick={connect}
-                            size="small"
-                            type="button"
-                          >
-                            Connect Google Photos
-                          </Button>
-                        ) : (
-                          <Button
-                            buttonStyle="pill"
-                            disabled={locked || Boolean(importFields?.blockedFields?.length)}
-                            margin={false}
-                            onClick={() => void launchPicker()}
-                            size="small"
-                            type="button"
-                          >
-                            {waitingForPicker ? 'Waiting for Google Photos…' : 'Select from Google Photos'}
-                          </Button>
-                        )}
-                        {pickerUrl ? (
-                          <>
-                            <span className="file-field__orText">or</span>
-                            <Button
-                              buttonStyle="pill"
-                              el="anchor"
-                              margin={false}
-                              newTab
-                              size="small"
-                              url={pickerUrl}
-                            >
-                              Open picker
-                            </Button>
-                          </>
-                        ) : null}
-                      </div>
-                      <p className="file-field__dragAndDropText">
-                        {waitingForPicker
-                          ? 'finish picking in the Google Photos tab'
-                          : status?.connected
-                            ? 'opens in a new tab'
-                            : 'connect your Google account to start'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className={styles.pick}>
+                <PickerLaunchButtons
+                  blocked={Boolean(importFields?.blockedFields?.length)}
+                  connected={Boolean(status?.connected)}
+                  locked={locked}
+                  onConnect={connect}
+                  onLaunch={() => void launchPicker()}
+                  pickerUrl={pickerUrl}
+                  waiting={waitingForPicker}
+                />
+                <p className="field-description">
+                  {waitingForPicker
+                    ? 'Finish picking in the Google Photos tab, then this drawer will show the files.'
+                    : status?.connected
+                      ? 'Opens Google Photos in a new tab. Payload cannot embed the picker.'
+                      : 'Connect your Google account to start.'}
+                </p>
               </div>
             ) : null}
 
@@ -558,55 +572,33 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
                     </strong>
                   </p>
                   <div className={styles.filesHeaderActions}>
-                    <Button
-                      buttonStyle="pill"
-                      disabled={locked}
-                      margin={false}
-                      onClick={() => void launchPicker()}
-                      size="small"
-                      type="button"
-                    >
-                      Select from Google Photos
-                    </Button>
-                    {pickerUrl ? (
-                      <Button
-                        buttonStyle="pill"
-                        el="anchor"
-                        margin={false}
-                        newTab
-                        size="small"
-                        url={pickerUrl}
-                      >
-                        Open picker
-                      </Button>
-                    ) : null}
+                    <PickerLaunchButtons
+                      blocked={Boolean(importFields?.blockedFields?.length)}
+                      connected
+                      locked={locked}
+                      onConnect={connect}
+                      onLaunch={() => void launchPicker()}
+                      pickerUrl={pickerUrl}
+                      waiting={false}
+                    />
                   </div>
                 </div>
-                {session?.mediaItems?.map((item) => (
-                  <div className={`file-field ${styles.file}`} key={item.id}>
-                    <div className="file-field__upload">
-                      <div className="file-field__thumbnail-wrap">
-                        <Thumbnail
-                          fileSrc={item.thumbnailUrl || undefined}
-                          size="small"
+                <div className={styles.grid}>
+                  {session?.mediaItems?.map((item) => (
+                    <div className={styles.card} key={item.id}>
+                      {item.thumbnailUrl ? (
+                        <img
+                          alt={item.filename || 'Picked photo'}
+                          className={styles.thumb}
+                          src={`${apiBase}${item.thumbnailUrl}`}
                         />
-                      </div>
-                      <div className="file-field__file-adjustments">
-                        <input
-                          aria-label={item.filename || item.id}
-                          className="file-field__filename"
-                          readOnly
-                          title={item.filename || item.id}
-                          type="text"
-                          value={item.filename || item.id}
-                        />
-                        {item.mimeType ? (
-                          <p className="field-description">{item.mimeType}</p>
-                        ) : null}
-                      </div>
+                      ) : (
+                        <div className={styles.placeholder}>{item.mimeType || 'media'}</div>
+                      )}
+                      <span className={styles.filename}>{item.filename || item.id}</span>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             ) : null}
 

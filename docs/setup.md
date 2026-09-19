@@ -236,6 +236,7 @@ Plugin endpoints (all under `routes.api`, default `/api`):
 | `GET` | `/google-photos/collections/:slug/import-fields` | Prompt / blocked fields |
 | `POST` | `/google-photos/sessions` | Create Picker session |
 | `GET` | `/google-photos/sessions/:id` | Poll session + previews |
+| `GET` | `/google-photos/sessions/:id/items/:itemId/thumbnail` | Authed thumbnail proxy (Picker `baseUrl` is not browser-loadable) |
 | `POST` | `/google-photos/sessions/:id/import` | Download and create uploads |
 
 ## 9. Production

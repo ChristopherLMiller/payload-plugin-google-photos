@@ -55,6 +55,9 @@ export async function deletePickerSession(accessToken: string, sessionId: string
   }
 }
 
+const LIST_CACHE_MS = 45_000
+const listedItemsCache = new Map<string, { expiresAt: number; items: PickedMediaItem[] }>()
+
 export async function listPickedMediaItems(
   accessToken: string,
   sessionId: string,
@@ -82,6 +85,28 @@ export async function listPickedMediaItems(
   return items
 }
 
+export function cachePickedMediaItems(cacheKey: string, items: PickedMediaItem[]): void {
+  listedItemsCache.set(cacheKey, { expiresAt: Date.now() + LIST_CACHE_MS, items })
+}
+
+export async function getPickedMediaItemsCached(
+  accessToken: string,
+  sessionId: string,
+  cacheKey: string,
+): Promise<PickedMediaItem[]> {
+  const hit = listedItemsCache.get(cacheKey)
+  if (hit && hit.expiresAt > Date.now()) {
+    return hit.items
+  }
+  const items = await listPickedMediaItems(accessToken, sessionId)
+  cachePickedMediaItems(cacheKey, items)
+  return items
+}
+
+export function previewThumbnailPath(sessionId: string, itemId: string): string {
+  return `/google-photos/sessions/${encodeURIComponent(sessionId)}/items/${encodeURIComponent(itemId)}/thumbnail`
+}
+
 export function getDownloadUrl(item: PickedMediaItem): null | string {
   const baseUrl = item.mediaFile?.baseUrl
   if (!baseUrl) {
@@ -97,7 +122,32 @@ export function getThumbnailUrl(item: PickedMediaItem): string | undefined {
   if (!baseUrl) {
     return undefined
   }
-  return `${baseUrl}=w256-h256`
+  return `${baseUrl}=w256-h256-c`
+}
+
+export async function downloadThumbnailBytes(
+  item: PickedMediaItem,
+  accessToken: string,
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const url = getThumbnailUrl(item)
+  if (!url) {
+    throw new Error('Picked item is missing a thumbnail URL')
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to download thumbnail (${response.status})`)
+  }
+
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    mimeType: response.headers.get('content-type') || 'image/jpeg',
+  }
 }
 
 export async function downloadMediaBytes(

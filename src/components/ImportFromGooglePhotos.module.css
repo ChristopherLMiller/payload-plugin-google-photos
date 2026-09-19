@@ -25,8 +25,17 @@
   gap: calc(var(--base) * 0.5);
 }
 
-.fileField :global(.file-field__upload) {
-  width: 100%;
+.pick {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.5);
+}
+
+.pickActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--base) * 0.5);
 }
 
 .files {
@@ -54,18 +63,46 @@
   gap: calc(var(--base) * 0.5);
 }
 
-.file :global(.file-field__upload) {
-  width: 100%;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: calc(var(--base) * 0.75);
 }
 
-.file :global(.file-field__thumbnail-wrap) {
-  width: calc(var(--base) * 5);
-  min-height: calc(var(--base) * 5);
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--style-radius-s);
   background: var(--theme-elevation-100);
 }
 
-.file :global(.file-field__filename) {
-  pointer-events: none;
+.placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--style-radius-s);
+  background: var(--theme-elevation-100);
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+}
+
+.filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .fields {

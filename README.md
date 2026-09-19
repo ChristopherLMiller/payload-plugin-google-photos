@@ -52,7 +52,7 @@ The Photos Picker scope is `https://www.googleapis.com/auth/photospicker.mediait
 
 Each target upload collection list view gets an **Import from Google Photos** pill in the list header (same `pill` / `small` style as **Create New** and **Bulk Upload**):
 
-1. Open the drawer and **Connect Google Photos** (same dropzone chrome as creating media).
+1. Open the drawer and **Connect Google Photos**.
 2. **Select from Google Photos** (new tab; Google forbids iframes).
 3. Fill any leftover required simple fields **once for the batch**, like the create form.
 4. **Save** downloads original bytes (`${baseUrl}=d`, or `=dv` for video) and creates documents with Local API `payload.create({ collection, data, file })`.
