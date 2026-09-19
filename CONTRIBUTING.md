@@ -2,13 +2,22 @@
 
 ## Development
 
+This repo is a Payload plugin (`src/`) plus a sample app (`dev/`).
+
 ```bash
 cp dev/.env.example dev/.env
+# set DATABASE_URL to a local MongoDB instance
+# set GOOGLE_PHOTOS_CLIENT_ID / GOOGLE_PHOTOS_CLIENT_SECRET
 pnpm install
 pnpm dev
 ```
 
-Admin login for the sample app: `dev@payloadcms.com` / `test`.
+Open [http://localhost:3000/admin](http://localhost:3000/admin) and sign in with:
+
+- Email: `dev@payloadcms.com`
+- Password: `test`
+
+The `media`, `gallery`, and `portraits` collections all have **Import from Google Photos** in the list view.
 
 ```bash
 pnpm lint
@@ -57,3 +66,18 @@ If a merge to `main` has no releasable commits, semantic-release does **not** bu
 PRs targeting `main` must pass the GitHub Actions workflow **CI / ci** (install, lint, typecheck, integration tests, build). Enable branch protection on `main` so that check is required.
 
 Do not commit `.env`, `client_secret_*.json`, `node_modules`, or other credentials.
+
+## Releases
+
+Merges to `main` run GitHub Actions, then [semantic-release](https://github.com/semantic-release/semantic-release). Conventional Commits drive the version as described above. If there are no releasable commits, nothing is published.
+
+### GitHub secrets
+
+| Secret | Required for | Notes |
+| --- | --- | --- |
+| `NPM_TOKEN` | `npm publish` | Create an npm **automation** token (npmjs.com → Access Tokens) and add it at GitHub → Settings → Secrets and variables → Actions. Without it, CI still runs; publish is skipped. |
+| `GITHUB_TOKEN` | GitHub Release + changelog commit | Built in. Grant the workflow `contents: write` (already set in `.github/workflows/ci.yml`). |
+
+### Branch protection
+
+On `main`, require the status check **`CI / ci`** (lint, typecheck, `pnpm test:int`, `pnpm build`) so failing PRs cannot merge. If you also require pull requests before merging, allow GitHub Actions to push release commits (`chore(release): …`) or semantic-release cannot update `CHANGELOG.md` / `package.json` on `main`.
