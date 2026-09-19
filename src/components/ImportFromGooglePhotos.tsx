@@ -1,6 +1,7 @@
 'use client'
 
-import { Button, Drawer, toast, useConfig, useModal } from '@payloadcms/ui'
+import { Banner, Button, Drawer, Pill, ShimmerEffect, Thumbnail, toast, useConfig, useModal } from '@payloadcms/ui'
+import { useRouter } from 'next/navigation.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { BlockedField, ImportItemResult, PromptField, SessionMediaPreview } from '../types.js'
@@ -62,12 +63,114 @@ function fieldInputValue(value: unknown, type: PromptField['type']): boolean | s
   return ''
 }
 
+function labelText(label: unknown, fallback: string): string {
+  return typeof label === 'string' && label.trim() ? label : fallback
+}
+
+function fieldTypeClass(type: PromptField['type']): string {
+  if (type === 'textarea') {
+    return 'field-type textarea'
+  }
+  if (type === 'checkbox') {
+    return 'field-type checkbox'
+  }
+  if (type === 'number') {
+    return 'field-type number'
+  }
+  return 'field-type text'
+}
+
+function PromptFieldControl({
+  extraData,
+  field,
+  onChange,
+}: {
+  extraData: Record<string, unknown>
+  field: PromptField
+  onChange: (name: string, value: unknown) => void
+}) {
+  const id = `google-photos-field-${field.name}`
+  const value = extraData[field.name]
+
+  return (
+    <div className={fieldTypeClass(field.type)}>
+      {field.type === 'checkbox' ? (
+        <label className={styles.checkboxRow} htmlFor={id}>
+          <input
+            aria-label={field.label}
+            checked={Boolean(value)}
+            id={id}
+            onChange={(event) => onChange(field.name, event.target.checked)}
+            type="checkbox"
+          />
+          <span className="field-label">
+            {field.label}
+            {field.required ? <span className="required">*</span> : null}
+          </span>
+        </label>
+      ) : (
+        <>
+          <label className="field-label" htmlFor={id}>
+            {field.label}
+            {field.required ? <span className="required">*</span> : null}
+          </label>
+          <div className="field-type__wrap">
+            {field.type === 'textarea' ? (
+              <textarea
+                aria-label={field.label}
+                id={id}
+                onChange={(event) => onChange(field.name, event.target.value)}
+                required={field.required}
+                value={String(fieldInputValue(value, field.type))}
+              />
+            ) : field.type === 'select' ? (
+              <select
+                aria-label={field.label}
+                className={styles.nativeControl}
+                id={id}
+                onChange={(event) => onChange(field.name, event.target.value)}
+                required={field.required}
+                value={String(fieldInputValue(value, field.type))}
+              >
+                <option value="">Select…</option>
+                {(field.options || []).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                aria-label={field.label}
+                id={id}
+                onChange={(event) =>
+                  onChange(
+                    field.name,
+                    field.type === 'number' ? Number(event.target.value) : event.target.value,
+                  )
+                }
+                required={field.required}
+                type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                value={String(fieldInputValue(value, field.type))}
+              />
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhotosProps) => {
-  const { config } = useConfig()
+  const { config, getEntityConfig } = useConfig()
   const { closeModal, isModalOpen, openModal } = useModal()
+  const router = useRouter()
   const drawerSlug = `google-photos-import-${collectionSlug}`
   const apiBase = `${config.serverURL || ''}${config.routes.api}`
   const adminRoute = config.routes.admin || '/admin'
+  const collectionConfig = getEntityConfig({ collectionSlug })
+  const pluralLabel = labelText(collectionConfig?.labels?.plural, collectionSlug)
+  const singularLabel = labelText(collectionConfig?.labels?.singular, collectionSlug)
 
   const [status, setStatus] = useState<null | StatusResponse>(null)
   const [importFields, setImportFields] = useState<ImportFieldsResponse | null>(null)
@@ -171,7 +274,7 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
           const wait = parseDurationMs(next.pollingConfig?.pollInterval)
           const timeoutIn = parseDurationMs(next.pollingConfig?.timeoutIn, 0)
           if (timeoutIn === 0 && next.pollingConfig?.timeoutIn) {
-            setError('Picker session timed out. Launch the picker again.')
+            setError('Picker session timed out. Select from Google Photos again.')
             return
           }
           timeout = setTimeout(() => {
@@ -220,6 +323,9 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
 
   const pickedCount = session?.mediaItems?.length || 0
   const locked = busy || importing
+  const waitingForPicker = Boolean(session && !session.mediaItemsSet)
+  const hasPicked = Boolean(session?.mediaItems?.length)
+  const loading = open && status === null && !error
 
   const connect = () => {
     const returnTo = encodeURIComponent(currentReturnTo)
@@ -252,7 +358,7 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
       if (next.pickerUri) {
         const popup = window.open(`${next.pickerUri}/autoclose`, '_blank', 'noopener,noreferrer')
         if (!popup) {
-          setError('Pop-up blocked. Use the picker link below.')
+          setError('Pop-up blocked. Use Open picker to continue in a new tab.')
         }
       }
     } catch (err) {
@@ -260,6 +366,17 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
     } finally {
       setBusy(false)
     }
+  }
+
+  const updateField = useCallback((name: string, value: unknown) => {
+    setExtraData((current) => ({ ...current, [name]: value }))
+  }, [])
+
+  const closeDrawer = () => {
+    if (importing) {
+      return
+    }
+    closeModal(drawerSlug)
   }
 
   const runImport = async () => {
@@ -271,7 +388,7 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
     setBusy(true)
     setError(null)
     toast.info(
-      `Importing ${count} item${pickedCount === 1 ? '' : 's'} into ${collectionSlug}. Keep this drawer open until it finishes.`,
+      `Saving ${count} ${pickedCount === 1 ? singularLabel : pluralLabel}. Keep this drawer open until it finishes.`,
     )
     try {
       const payload = await apiFetch<ImportResponse>(
@@ -288,7 +405,8 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
       const imported = (payload.results || []).filter((item) => item.status === 'imported').length
       const skipped = (payload.results || []).filter((item) => item.status === 'skipped').length
       const failed = (payload.results || []).filter((item) => item.status === 'failed').length
-      toast.success(`Imported ${imported}, skipped ${skipped}, failed ${failed}`)
+      toast.success(`Created ${imported}, skipped ${skipped}, failed ${failed}`)
+      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
     } finally {
@@ -297,189 +415,258 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
     }
   }
 
+  const pickerUrl = session?.pickerUri ? `${session.pickerUri}/autoclose` : null
+  const saveLabel = importing
+    ? 'Saving…'
+    : pickedCount > 0
+      ? `Save ${pickedCount} ${pickedCount === 1 ? singularLabel : pluralLabel}`
+      : 'Save'
+
   return (
     <>
-      <Button buttonStyle="secondary" onClick={() => openModal(drawerSlug)} size="small" type="button">
+      <Button
+        aria-label={`Import from Google Photos into ${pluralLabel}`}
+        buttonStyle="pill"
+        margin={false}
+        onClick={() => openModal(drawerSlug)}
+        size="small"
+        type="button"
+      >
         Import from Google Photos
       </Button>
-      <Drawer slug={drawerSlug} title="Import from Google Photos">
+      <Drawer slug={drawerSlug} title={`Creating new ${singularLabel}`}>
         <div className={styles.panel}>
-          <div className={styles.header}>
-            <p className={styles.message}>
-              Pick photos in Google Photos. This plugin copies the original files into{' '}
-              <strong>{collectionSlug}</strong> as normal Payload uploads.
-            </p>
-            {status?.connected ? (
-              <div className={styles.statusRow}>
-                <span>Connected as {status.googleEmail || 'Google user'}</span>
-                <Button buttonStyle="pill" disabled={locked} onClick={() => void disconnect()} size="small">
-                  Disconnect
-                </Button>
+          <div className={styles.body}>
+            <div className={styles.meta}>
+              <p className="field-description">
+                Select files in Google Photos. Payload copies the originals into {pluralLabel} as
+                normal uploads.
+              </p>
+              {status?.connected ? (
+                <div className={styles.statusRow}>
+                  <Pill pillStyle="light" size="small">
+                    {status.googleEmail || 'Google Photos connected'}
+                  </Pill>
+                  <Button
+                    buttonStyle="pill"
+                    disabled={locked}
+                    margin={false}
+                    onClick={() => void disconnect()}
+                    size="small"
+                    type="button"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            {error ? <Banner type="error">{error}</Banner> : null}
+
+            {importFields?.blockedFields?.length ? (
+              <Banner type="error">
+                These required fields cannot be filled here:{' '}
+                {importFields.blockedFields.map((field) => `${field.label} (${field.type})`).join(', ')}
+                . Add a collection defaultValue or a mapMediaData function before importing.
+              </Banner>
+            ) : null}
+
+            {importing ? (
+              <Banner type="success">
+                <span className={styles.progressBusy}>
+                  <span className={styles.spinner} />
+                  Copying {pickedCount || 'selected'} original
+                  {pickedCount === 1 ? '' : 's'} into {pluralLabel}. Keep this drawer open — this can
+                  take a while for large photos or videos.
+                </span>
+              </Banner>
+            ) : null}
+
+            {loading ? <ShimmerEffect height="8rem" /> : null}
+
+            {!loading && !hasPicked ? (
+              <div className={`file-field ${styles.fileField}`}>
+                <div className="file-field__upload">
+                  <div className="dropzone">
+                    <div className="file-field__dropzoneContent">
+                      <div className="file-field__dropzoneButtons">
+                        {!status?.connected ? (
+                          <Button
+                            buttonStyle="pill"
+                            disabled={locked}
+                            margin={false}
+                            onClick={connect}
+                            size="small"
+                            type="button"
+                          >
+                            Connect Google Photos
+                          </Button>
+                        ) : (
+                          <Button
+                            buttonStyle="pill"
+                            disabled={locked || Boolean(importFields?.blockedFields?.length)}
+                            margin={false}
+                            onClick={() => void launchPicker()}
+                            size="small"
+                            type="button"
+                          >
+                            {waitingForPicker ? 'Waiting for Google Photos…' : 'Select from Google Photos'}
+                          </Button>
+                        )}
+                        {pickerUrl ? (
+                          <>
+                            <span className="file-field__orText">or</span>
+                            <Button
+                              buttonStyle="pill"
+                              el="anchor"
+                              margin={false}
+                              newTab
+                              size="small"
+                              url={pickerUrl}
+                            >
+                              Open picker
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                      <p className="file-field__dragAndDropText">
+                        {waitingForPicker
+                          ? 'finish picking in the Google Photos tab'
+                          : status?.connected
+                            ? 'opens in a new tab'
+                            : 'connect your Google account to start'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <p className={styles.message}>Connect your Google account to start a picker session.</p>
-            )}
-          </div>
+            ) : null}
 
-          {error ? <p className={styles.error}>{error}</p> : null}
+            {waitingForPicker ? (
+              <p className={`${styles.inlineStatus} ${styles.progressBusy}`}>
+                <span className={styles.spinner} />
+                Waiting for you to finish picking in Google Photos. Leave this drawer open.
+              </p>
+            ) : null}
 
-          {importFields?.blockedFields?.length ? (
-            <p className={styles.error}>
-              These required fields cannot be filled in the import drawer:{' '}
-              {importFields.blockedFields.map((field) => `${field.label} (${field.type})`).join(', ')}.
-              Add a collection defaultValue or a mapMediaData function before importing.
-            </p>
-          ) : null}
+            {hasPicked ? (
+              <div className={styles.files}>
+                <div className={styles.filesHeader}>
+                  <p className={styles.filesCount}>
+                    <strong>
+                      {pickedCount} {pickedCount === 1 ? 'file to upload' : 'files to upload'}
+                    </strong>
+                  </p>
+                  <div className={styles.filesHeaderActions}>
+                    <Button
+                      buttonStyle="pill"
+                      disabled={locked}
+                      margin={false}
+                      onClick={() => void launchPicker()}
+                      size="small"
+                      type="button"
+                    >
+                      Select from Google Photos
+                    </Button>
+                    {pickerUrl ? (
+                      <Button
+                        buttonStyle="pill"
+                        el="anchor"
+                        margin={false}
+                        newTab
+                        size="small"
+                        url={pickerUrl}
+                      >
+                        Open picker
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+                {session?.mediaItems?.map((item) => (
+                  <div className={`file-field ${styles.file}`} key={item.id}>
+                    <div className="file-field__upload">
+                      <div className="file-field__thumbnail-wrap">
+                        <Thumbnail
+                          fileSrc={item.thumbnailUrl || undefined}
+                          size="small"
+                        />
+                      </div>
+                      <div className="file-field__file-adjustments">
+                        <input
+                          aria-label={item.filename || item.id}
+                          className="file-field__filename"
+                          readOnly
+                          title={item.filename || item.id}
+                          type="text"
+                          value={item.filename || item.id}
+                        />
+                        {item.mimeType ? (
+                          <p className="field-description">{item.mimeType}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
-          <div className={styles.actions}>
-            {!status?.connected ? (
-              <Button disabled={locked} onClick={connect} type="button">
-                Connect Google Photos
-              </Button>
-            ) : (
-              <Button disabled={locked || Boolean(importFields?.blockedFields?.length)} onClick={() => void launchPicker()}>
-                Launch picker
-              </Button>
-            )}
-            {session?.pickerUri ? (
-              <Button
-                buttonStyle="secondary"
-                el="anchor"
-                newTab
-                url={`${session.pickerUri}/autoclose`}
+            {hasPicked && importFields?.promptFields?.length ? (
+              <form
+                className={`render-fields ${styles.fields}`}
+                onSubmit={(event) => event.preventDefault()}
               >
-                Open picker tab
-              </Button>
+                <p className="field-description field-description--margin-bottom">
+                  These values are applied once to every file in this batch, the same way collection
+                  defaults work when creating {pluralLabel}.
+                </p>
+                {importFields.promptFields.map((field) => (
+                  <PromptFieldControl
+                    extraData={extraData}
+                    field={field}
+                    key={field.name}
+                    onChange={updateField}
+                  />
+                ))}
+              </form>
+            ) : null}
+
+            {results ? (
+              <ol className={styles.results}>
+                {results.map((item) => (
+                  <li key={item.googlePhotosId}>
+                    {item.filename || item.googlePhotosId}: {item.status}
+                    {item.error ? ` — ${item.error}` : ''}
+                  </li>
+                ))}
+              </ol>
             ) : null}
           </div>
 
-          {session && !session.mediaItemsSet ? (
-            <p className={`${styles.progress} ${styles.progressBusy}`}>
-              <span className={styles.spinner} />
-              Waiting for you to finish picking in Google Photos. Leave this drawer open.
-            </p>
-          ) : null}
-
-          {importing ? (
-            <p aria-live="polite" className={`${styles.progress} ${styles.progressBusy}`}>
-              <span className={styles.spinner} />
-              Copying {pickedCount || 'selected'} original
-              {pickedCount === 1 ? '' : 's'} into {collectionSlug}. Keep this drawer open — this can
-              take a while for large photos or videos.
-            </p>
-          ) : null}
-
-          {session?.mediaItems?.length ? (
-            <div className={styles.grid}>
-              {session.mediaItems.map((item) => (
-                <div className={styles.card} key={item.id}>
-                  {item.thumbnailUrl ? (
-                    <img alt={item.filename || 'Picked photo'} className={styles.thumb} src={item.thumbnailUrl} />
-                  ) : (
-                    <div className={styles.placeholder}>{item.mimeType || 'media'}</div>
-                  )}
-                  <span className={styles.filename}>{item.filename || item.id}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {importFields?.promptFields?.length ? (
-            <form className={styles.form} onSubmit={(event) => event.preventDefault()}>
-              <p className={styles.message}>
-                These values are applied once to every photo in this import batch.
-              </p>
-              {importFields.promptFields.map((field) => (
-                <label className={styles.field} htmlFor={`google-photos-field-${field.name}`} key={field.name}>
-                  {field.label}
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      aria-label={field.label}
-                      id={`google-photos-field-${field.name}`}
-                      onChange={(event) =>
-                        setExtraData((current) => ({ ...current, [field.name]: event.target.value }))
-                      }
-                      required={field.required}
-                      value={String(fieldInputValue(extraData[field.name], field.type))}
-                    />
-                  ) : field.type === 'checkbox' ? (
-                    <input
-                      aria-label={field.label}
-                      checked={Boolean(extraData[field.name])}
-                      id={`google-photos-field-${field.name}`}
-                      onChange={(event) =>
-                        setExtraData((current) => ({ ...current, [field.name]: event.target.checked }))
-                      }
-                      type="checkbox"
-                    />
-                  ) : field.type === 'select' ? (
-                    <select
-                      aria-label={field.label}
-                      id={`google-photos-field-${field.name}`}
-                      onChange={(event) =>
-                        setExtraData((current) => ({ ...current, [field.name]: event.target.value }))
-                      }
-                      required={field.required}
-                      value={String(fieldInputValue(extraData[field.name], field.type))}
-                    >
-                      <option value="">Select…</option>
-                      {(field.options || []).map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      aria-label={field.label}
-                      id={`google-photos-field-${field.name}`}
-                      onChange={(event) =>
-                        setExtraData((current) => ({
-                          ...current,
-                          [field.name]:
-                            field.type === 'number' ? Number(event.target.value) : event.target.value,
-                        }))
-                      }
-                      required={field.required}
-                      type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                      value={String(fieldInputValue(extraData[field.name], field.type))}
-                    />
-                  )}
-                </label>
-              ))}
-            </form>
-          ) : null}
-
-          <div className={styles.actions}>
-            <Button disabled={locked || !canImport || importing} onClick={() => void runImport()} type="button">
-              {importing ? 'Importing…' : 'Import'}
-            </Button>
+          <div className={styles.controls}>
             <Button
               buttonStyle="secondary"
               disabled={importing}
-              onClick={() => closeModal(drawerSlug)}
+              margin={false}
+              onClick={closeDrawer}
               type="button"
             >
-              {importing ? 'Importing…' : 'Close'}
+              Cancel
             </Button>
+            {results ? (
+              <Button margin={false} onClick={closeDrawer} type="button">
+                Done
+              </Button>
+            ) : (
+              <Button
+                disabled={locked || !canImport}
+                margin={false}
+                onClick={() => void runImport()}
+                type="button"
+              >
+                {saveLabel}
+              </Button>
+            )}
           </div>
-          {canImport && !importing && !results ? (
-            <p className={styles.message}>
-              Import copies original files into Payload. Keep this drawer open until the result list
-              appears.
-            </p>
-          ) : null}
-
-          {results ? (
-            <ol className={styles.results}>
-              {results.map((item) => (
-                <li key={item.googlePhotosId}>
-                  {item.filename || item.googlePhotosId}: {item.status}
-                  {item.error ? ` — ${item.error}` : ''}
-                </li>
-              ))}
-            </ol>
-          ) : null}
         </div>
       </Drawer>
     </>

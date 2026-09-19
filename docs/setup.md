@@ -127,7 +127,7 @@ https://www.googleapis.com/auth/photospicker.mediaitems.readonly
 
 Also enable **Google Photos Picker API** (`photospicker.googleapis.com`). Do not use the old Photos Library API.
 
-If Connect works but **Launch picker** fails with `Request had insufficient authentication scopes`, the access token does not include that scope. Typical causes:
+If Connect works but **Select from Google Photos** fails with `Request had insufficient authentication scopes`, the access token does not include that scope. Typical causes:
 
 - The Picker API is not enabled on the Cloud project
 - The scope is missing from Data Access
@@ -209,12 +209,12 @@ pnpm build
 
 ## 8. How import works
 
-1. In an upload collection list view, open **Import from Google Photos**.
-2. **Connect** sends the admin to `{apiRoute}/google-photos/oauth/start`, then Google, then `{apiRoute}/google-photos/oauth/callback`. Tokens are stored on `google-photos-oauth` for that Payload user (refresh token encrypted).
-3. **Launch picker** creates a Picker session (`POST {apiRoute}/google-photos/sessions`) and opens `pickerUri/autoclose` in a **new tab**. Google forbids embedding the picker in an iframe.
+1. In an upload collection list view, open the **Import from Google Photos** pill (same style as **Create New** / **Bulk Upload**).
+2. **Connect Google Photos** sends the admin to `{apiRoute}/google-photos/oauth/start`, then Google, then `{apiRoute}/google-photos/oauth/callback`. Tokens are stored on `google-photos-oauth` for that Payload user (refresh token encrypted).
+3. **Select from Google Photos** creates a Picker session (`POST {apiRoute}/google-photos/sessions`) and opens `pickerUri/autoclose` in a **new tab**. Google forbids embedding the picker in an iframe.
 4. The plugin polls `GET {apiRoute}/google-photos/sessions/:id` until `mediaItemsSet` is true.
-5. Leftover required simple fields are collected **once for the whole batch**.
-6. **Import** (`POST {apiRoute}/google-photos/sessions/:id/import`) downloads original bytes (`${baseUrl}=d`, or `=dv` for video) and creates documents with Payload Local API `payload.create({ collection, data, file })`.
+5. Leftover required simple fields are collected **once for the whole batch**, using the same field chrome as the create form.
+6. **Save** (`POST {apiRoute}/google-photos/sessions/:id/import`) downloads original bytes (`${baseUrl}=d`, or `=dv` for video) and creates documents with Payload Local API `payload.create({ collection, data, file })`.
 
 The file lands in the destination collection’s existing storage adapter, with that collection’s `imageSizes` / Sharp thumbnails. `googlePhotosId` is a hidden dedupe key: re-importing the same Picker item skips the create.
 
@@ -255,7 +255,7 @@ Plugin endpoints (all under `routes.api`, default `/api`):
 | `redirect_uri_mismatch` | Google client redirect URI ≠ plugin callback |
 | App is in testing / access denied | Google account is not a test user |
 | `invalid_scope` / consent errors | Add the Picker scope under Data Access and enable Photos Picker API |
-| Launch picker: `insufficient authentication scopes` | Token lacks Picker scope — add Data Access scope, Disconnect, Connect, keep Photos Picker checked |
+| Select from Google Photos: `insufficient authentication scopes` | Token lacks Picker scope — add Data Access scope, Disconnect, Connect, keep Photos Picker checked |
 | `Google did not return a refresh token` | Reconnect; the plugin already uses `prompt=consent` and `access_type=offline` |
 | Import blocked on a relationship / richText field | Set `defaultValue` or `mapMediaData`, or make the field optional |
 | Existing imports stay after Disconnect | Expected — Payload owns the files |

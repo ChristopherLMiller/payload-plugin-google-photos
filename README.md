@@ -50,12 +50,12 @@ The Photos Picker scope is `https://www.googleapis.com/auth/photospicker.mediait
 
 ## In the admin
 
-Each target upload collection list view gets **Import from Google Photos**:
+Each target upload collection list view gets an **Import from Google Photos** pill in the list header (same `pill` / `small` style as **Create New** and **Bulk Upload**):
 
-1. **Connect** Google from the collection list action.
-2. **Launch picker** (new tab; Google forbids iframes).
-3. Fill any leftover required simple fields **once for the batch**.
-4. **Import** downloads original bytes (`${baseUrl}=d`, or `=dv` for video) and creates documents with Local API `payload.create({ collection, data, file })`.
+1. Open the drawer and **Connect Google Photos** (same dropzone chrome as creating media).
+2. **Select from Google Photos** (new tab; Google forbids iframes).
+3. Fill any leftover required simple fields **once for the batch**, like the create form.
+4. **Save** downloads original bytes (`${baseUrl}=d`, or `=dv` for video) and creates documents with Local API `payload.create({ collection, data, file })`.
 
 Uploads use the destination collection’s existing storage adapter, thumbnails, and `imageSizes`. Import IDs are stored in the hidden `google-photos-imports` collection so host media tables are not altered. On Postgres/SQLite the plugin creates its tables and lock-rel columns at startup — no CMS migration files.
 

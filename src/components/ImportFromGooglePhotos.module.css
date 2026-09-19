@@ -1,14 +1,21 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--base) * 1);
-  padding-bottom: calc(var(--base) * 1.5);
+  min-height: calc(100% - var(--base) * 4);
 }
 
-.header {
+.body {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--base) * 0.35);
+  gap: var(--base);
+  flex: 1 1 auto;
+  padding-bottom: var(--base);
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.5);
 }
 
 .statusRow {
@@ -18,88 +25,84 @@
   gap: calc(var(--base) * 0.5);
 }
 
-.actions {
+.fileField :global(.file-field__upload) {
+  width: 100%;
+}
+
+.files {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.75);
+}
+
+.filesHeader {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: calc(var(--base) * 0.5);
 }
 
-.message {
+.filesCount {
   margin: 0;
-  color: var(--theme-elevation-800);
 }
 
-.error {
-  margin: 0;
-  color: var(--theme-error-600);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: calc(var(--base) * 0.75);
-}
-
-.card {
+.filesHeaderActions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.thumb {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 4px;
-  background: var(--theme-elevation-100);
-}
-
-.placeholder {
-  width: 100%;
-  aspect-ratio: 1;
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  border-radius: 4px;
+  gap: calc(var(--base) * 0.5);
+}
+
+.file :global(.file-field__upload) {
+  width: 100%;
+}
+
+.file :global(.file-field__thumbnail-wrap) {
+  width: calc(var(--base) * 5);
+  min-height: calc(var(--base) * 5);
   background: var(--theme-elevation-100);
-  color: var(--theme-elevation-600);
-  font-size: 12px;
-  text-align: center;
-  padding: 8px;
 }
 
-.filename {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
+.file :global(.file-field__filename) {
+  pointer-events: none;
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--base) * 0.75);
+.fields {
+  margin-top: calc(var(--base) * 0.5);
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.checkboxRow {
+  display: inline-flex;
+  align-items: center;
 }
 
-.field label {
-  font-weight: 600;
+.checkboxRow :global(.field-label) {
+  padding-bottom: 0;
+  padding-left: calc(var(--base) * 0.5);
 }
 
-.progress {
-  margin: 0;
-  padding: calc(var(--base) * 0.75);
-  border: 1px solid var(--theme-success-500);
-  border-radius: 4px;
-  background: var(--theme-success-50, var(--theme-elevation-50));
+.nativeControl {
+  appearance: none;
+  width: 100%;
+  font: inherit;
+  line-height: 20px;
   color: var(--theme-elevation-800);
-  font-weight: 600;
+  background: var(--theme-input-bg, var(--theme-bg));
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: var(--style-radius-s);
+  padding: calc(var(--base) * 0.4) calc(var(--base) * 0.75);
+  min-height: calc(var(--base) * 2);
+}
+
+.nativeControl:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--theme-elevation-400);
+}
+
+.inlineStatus {
+  margin: 0;
+  color: var(--theme-elevation-800);
 }
 
 .progressBusy {
@@ -116,6 +119,27 @@
   border-radius: 50%;
   animation: google-photos-spin 0.8s linear infinite;
   flex-shrink: 0;
+}
+
+.results {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--theme-elevation-800);
+}
+
+.controls {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: calc(var(--base) * 0.5);
+  min-height: var(--doc-controls-height, calc(var(--base) * 3));
+  margin-inline: calc(var(--gutter-h) * -1);
+  padding: calc(var(--base) * 0.75) var(--gutter-h);
+  background: var(--theme-bg);
+  border-top: 1px solid var(--theme-border-color, var(--theme-elevation-100));
 }
 
 @keyframes google-photos-spin {
