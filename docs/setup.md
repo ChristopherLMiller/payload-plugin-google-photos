@@ -39,20 +39,13 @@ The plugin:
 
 Use `disabled: true` to keep the plugin collections but skip endpoints and the admin UI (useful when generating types).
 
-### SQL databases (Postgres / SQLite)
+On SQL databases (Postgres / SQLite) the plugin applies its own additive schema at startup (`CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`). You do **not** add plugin migrations to the host CMS. That covers:
 
-Installing the plugin **changes Payload schema**. Postgres and SQLite will query the new plugin tables (and, in 1.0.0–1.0.1, extra columns on every upload collection). If you skip a migration, lists fail with errors like `column "google_photos_id" does not exist`.
+- `google_photos_oauth` / `google_photos_imports`
+- `payload_locked_documents_rels.google_photos_oauth_id` / `google_photos_imports_id` (so Better Auth / document-lock queries do not fail)
+- matching columns on `payload_preferences_rels`
 
-After adding or upgrading the plugin:
-
-```bash
-pnpm payload migrate:create
-pnpm payload migrate
-```
-
-Commit the generated files under your `migrationDir` and deploy. If production already runs `payload migrate` on boot, the new migration must be in the image.
-
-From **1.0.2** the plugin no longer adds `googlePhotosId` / `googlePhotosFilename` to host upload collections. Dedupe lives in `google-photos-imports`. You still need a migration for the plugin’s own collections. If 1.0.1 already added media columns, they are unused after upgrading and can be left in place.
+MongoDB needs no extra schema step. Host `payload migrate:create` remains optional if you want Drizzle snapshots to match; it is not required for the plugin to run.
 
 ## 2. Plugin options vs environment variables
 

@@ -80,6 +80,8 @@ export function getOAuthCollection(usersSlug: CollectionSlug): CollectionConfig 
         },
       ],
     },
+    lockDocuments: false,
     timestamps: true,
+    versions: false,
   }
 }

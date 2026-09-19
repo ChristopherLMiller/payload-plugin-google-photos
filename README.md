@@ -57,11 +57,11 @@ Each target upload collection list view gets **Import from Google Photos**:
 3. Fill any leftover required simple fields **once for the batch**.
 4. **Import** downloads original bytes (`${baseUrl}=d`, or `=dv` for video) and creates documents with Local API `payload.create({ collection, data, file })`.
 
-Uploads use the destination collection’s existing storage adapter, thumbnails, and `imageSizes`. Import IDs are stored in the hidden `google-photos-imports` collection so host media tables are not altered.
+Uploads use the destination collection’s existing storage adapter, thumbnails, and `imageSizes`. Import IDs are stored in the hidden `google-photos-imports` collection so host media tables are not altered. On Postgres/SQLite the plugin creates its tables and lock-rel columns at startup — no CMS migration files.
 
 Required-field strategy:
 
-1. Apply field `defaultValue`s, filename-based `alt` / `title` / `caption` / `name`, and hidden plugin fields.
+1. Apply field `defaultValue`s and filename-based `alt` / `title` / `caption` / `name`.
 2. Merge drawer `extraData`, then `mapMediaData`.
 3. Prompt leftover simple fields (`text`, `textarea`, `number`, `checkbox`, `select`, `date`).
 4. Block relationship, upload, blocks, array, richText, json, and similar types — supply them with `defaultValue` or `mapMediaData` instead.

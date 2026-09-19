@@ -5,6 +5,7 @@ import { getPayload } from 'payload'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 
 import { GOOGLE_PHOTOS_FILENAME_FIELD, GOOGLE_PHOTOS_ID_FIELD } from '../src/constants.js'
+import { buildPluginSchemaStatements } from '../src/db/ensureSchema.js'
 import { analyzeRequiredFields, isTargetUploadCollection } from '../src/fields/required.js'
 import { decryptSecret, encryptSecret } from '../src/google/crypto.js'
 import { PLUGIN_PACKAGE_NAME } from '../src/index.js'
@@ -163,5 +164,24 @@ describe('token encryption', () => {
     const encrypted = encryptSecret('refresh-token-value', secret)
     expect(encrypted).not.toContain('refresh-token-value')
     expect(decryptSecret(encrypted, secret)).toBe('refresh-token-value')
+  })
+})
+
+describe('plugin SQL schema', () => {
+  test('adds plugin tables and lock-rel columns without host migrations', () => {
+    const statements = buildPluginSchemaStatements({
+      idType: 'number',
+      sqlite: false,
+      usersTable: 'users',
+    }).join('\n')
+
+    expect(statements).toContain('CREATE TABLE IF NOT EXISTS "google_photos_oauth"')
+    expect(statements).toContain('CREATE TABLE IF NOT EXISTS "google_photos_imports"')
+    expect(statements).toContain(
+      'ALTER TABLE "payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "google_photos_oauth_id"',
+    )
+    expect(statements).toContain(
+      'ALTER TABLE "payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "google_photos_imports_id"',
+    )
   })
 })

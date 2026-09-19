@@ -45,7 +45,9 @@ export function getImportsCollection(): CollectionConfig {
         unique: true,
       },
     ],
+    lockDocuments: false,
     timestamps: true,
+    versions: false,
   }
 }
 
