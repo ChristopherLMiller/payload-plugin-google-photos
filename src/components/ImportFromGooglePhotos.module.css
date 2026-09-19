@@ -1,0 +1,101 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 1);
+  padding-bottom: calc(var(--base) * 1.5);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.35);
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--base) * 0.5);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--base) * 0.5);
+}
+
+.message {
+  margin: 0;
+  color: var(--theme-elevation-800);
+}
+
+.error {
+  margin: 0;
+  color: var(--theme-error-600);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: calc(var(--base) * 0.75);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--theme-elevation-100);
+}
+
+.placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--theme-elevation-100);
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+}
+
+.filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.75);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.2em;
+}
