@@ -85,7 +85,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NPM_TOKEN" ]; then
-            echo "::warning::NPM_TOKEN is not set. Skipping semantic-release. Add an npm automation token as the NPM_TOKEN repository secret."
-            exit 0
+            echo "::warning::NPM_TOKEN is not set. Creating a GitHub release without npm publish. Add an npm automation token as the NPM_TOKEN repository secret to publish to the registry."
           fi
           pnpm exec semantic-release
