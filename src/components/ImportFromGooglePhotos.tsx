@@ -74,6 +74,7 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
   const [extraData, setExtraData] = useState<Record<string, unknown>>({})
   const [session, setSession] = useState<null | SessionResponse>(null)
   const [busy, setBusy] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [error, setError] = useState<null | string>(null)
   const [results, setResults] = useState<ImportItemResult[] | null>(null)
 
@@ -194,6 +195,18 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
     }
   }, [apiFetch, open, session?.id, session?.mediaItemsSet, session?.pollingConfig?.pollInterval])
 
+  useEffect(() => {
+    if (!importing) {
+      return
+    }
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [importing])
+
   const canImport =
     Boolean(session?.mediaItemsSet) &&
     (importFields?.promptFields || []).every((field) => {
@@ -204,6 +217,9 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
       return typeof value === 'string' ? value.trim().length > 0 : Boolean(value)
     }) &&
     (importFields?.blockedFields.length || 0) === 0
+
+  const pickedCount = session?.mediaItems?.length || 0
+  const locked = busy || importing
 
   const connect = () => {
     const returnTo = encodeURIComponent(currentReturnTo)
@@ -250,8 +266,13 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
     if (!session?.id) {
       return
     }
+    const count = pickedCount || 'selected'
+    setImporting(true)
     setBusy(true)
     setError(null)
+    toast.info(
+      `Importing ${count} item${pickedCount === 1 ? '' : 's'} into ${collectionSlug}. Keep this drawer open until it finishes.`,
+    )
     try {
       const payload = await apiFetch<ImportResponse>(
         `/google-photos/sessions/${encodeURIComponent(session.id)}/import`,
@@ -268,13 +289,11 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
       const skipped = (payload.results || []).filter((item) => item.status === 'skipped').length
       const failed = (payload.results || []).filter((item) => item.status === 'failed').length
       toast.success(`Imported ${imported}, skipped ${skipped}, failed ${failed}`)
-      if (failed === 0) {
-        setSession(null)
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
     } finally {
       setBusy(false)
+      setImporting(false)
     }
   }
 
@@ -293,7 +312,7 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
             {status?.connected ? (
               <div className={styles.statusRow}>
                 <span>Connected as {status.googleEmail || 'Google user'}</span>
-                <Button buttonStyle="pill" disabled={busy} onClick={() => void disconnect()} size="small">
+                <Button buttonStyle="pill" disabled={locked} onClick={() => void disconnect()} size="small">
                   Disconnect
                 </Button>
               </div>
@@ -314,11 +333,11 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
 
           <div className={styles.actions}>
             {!status?.connected ? (
-              <Button disabled={busy} onClick={connect} type="button">
+              <Button disabled={locked} onClick={connect} type="button">
                 Connect Google Photos
               </Button>
             ) : (
-              <Button disabled={busy || Boolean(importFields?.blockedFields?.length)} onClick={() => void launchPicker()}>
+              <Button disabled={locked || Boolean(importFields?.blockedFields?.length)} onClick={() => void launchPicker()}>
                 Launch picker
               </Button>
             )}
@@ -335,7 +354,19 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
           </div>
 
           {session && !session.mediaItemsSet ? (
-            <p className={styles.message}>Waiting for you to finish picking in Google Photos…</p>
+            <p className={`${styles.progress} ${styles.progressBusy}`}>
+              <span className={styles.spinner} />
+              Waiting for you to finish picking in Google Photos. Leave this drawer open.
+            </p>
+          ) : null}
+
+          {importing ? (
+            <p aria-live="polite" className={`${styles.progress} ${styles.progressBusy}`}>
+              <span className={styles.spinner} />
+              Copying {pickedCount || 'selected'} original
+              {pickedCount === 1 ? '' : 's'} into {collectionSlug}. Keep this drawer open — this can
+              take a while for large photos or videos.
+            </p>
           ) : null}
 
           {session?.mediaItems?.length ? (
@@ -420,13 +451,24 @@ export const ImportFromGooglePhotos = ({ collectionSlug }: ImportFromGooglePhoto
           ) : null}
 
           <div className={styles.actions}>
-            <Button disabled={busy || !canImport} onClick={() => void runImport()} type="button">
-              Import
+            <Button disabled={locked || !canImport || importing} onClick={() => void runImport()} type="button">
+              {importing ? 'Importing…' : 'Import'}
             </Button>
-            <Button buttonStyle="secondary" onClick={() => closeModal(drawerSlug)} type="button">
-              Close
+            <Button
+              buttonStyle="secondary"
+              disabled={importing}
+              onClick={() => closeModal(drawerSlug)}
+              type="button"
+            >
+              {importing ? 'Importing…' : 'Close'}
             </Button>
           </div>
+          {canImport && !importing && !results ? (
+            <p className={styles.message}>
+              Import copies original files into Payload. Keep this drawer open until the result list
+              appears.
+            </p>
+          ) : null}
 
           {results ? (
             <ol className={styles.results}>
