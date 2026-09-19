@@ -8,6 +8,7 @@ import { GOOGLE_PHOTOS_FILENAME_FIELD, GOOGLE_PHOTOS_ID_FIELD } from '../src/con
 import { buildPluginSchemaStatements } from '../src/db/ensureSchema.js'
 import { analyzeRequiredFields, isTargetUploadCollection } from '../src/fields/required.js'
 import { decryptSecret, encryptSecret } from '../src/google/crypto.js'
+import { hasPickerScope } from '../src/google/oauth.js'
 import { PLUGIN_PACKAGE_NAME } from '../src/index.js'
 
 let payload: Payload
@@ -183,5 +184,16 @@ describe('plugin SQL schema', () => {
     expect(statements).toContain(
       'ALTER TABLE "payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "google_photos_imports_id"',
     )
+  })
+})
+
+describe('picker OAuth scopes', () => {
+  test('detects the Photos Picker scope in a granted token', () => {
+    expect(
+      hasPickerScope(
+        'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
+      ),
+    ).toBe(true)
+    expect(hasPickerScope('https://www.googleapis.com/auth/userinfo.email')).toBe(false)
   })
 })

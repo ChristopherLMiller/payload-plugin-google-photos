@@ -4,7 +4,7 @@ import type { Payload, PayloadRequest } from 'payload'
 import { OAUTH_COLLECTION_SLUG } from '../constants.js'
 import { asCollectionSlug } from '../utilities/asCollectionSlug.js'
 import { decryptSecret, encryptSecret } from './crypto.js'
-import { createOAuthClient, type ResolvedGoogleConfig } from './oauth.js'
+import { createOAuthClient, type ResolvedGoogleConfig, resolveGrantedScope } from './oauth.js'
 
 export type OAuthTokenDoc = {
   accessToken?: null | string
@@ -77,6 +77,11 @@ export async function upsertUserTokens(args: {
     throw new Error('Google did not return a refresh token. Reconnect and grant offline access.')
   }
 
+  let grantedScope = scope || credentials.scope || existing?.scope || ''
+  if (credentials.access_token) {
+    grantedScope = await resolveGrantedScope(credentials.access_token)
+  }
+
   const data = {
     accessToken: credentials.access_token || existing?.accessToken || '',
     accessTokenExpiresAt: credentials.expiry_date
@@ -84,7 +89,7 @@ export async function upsertUserTokens(args: {
       : new Date(Date.now() + 45 * 60 * 1000).toISOString(),
     encryptedRefreshToken: encryptSecret(refreshToken, config.encryptionKey),
     googleEmail: googleEmail || existing?.googleEmail || '',
-    scope: scope || credentials.scope || existing?.scope || '',
+    scope: grantedScope,
     user: userId,
   }
 
@@ -122,6 +127,7 @@ export async function getValidAccessToken(args: {
   }
 
   if (doc.accessToken && !isExpired(doc.accessTokenExpiresAt)) {
+    await resolveGrantedScope(doc.accessToken)
     return { accessToken: doc.accessToken, doc }
   }
 

@@ -264,7 +264,8 @@ export function createPluginEndpoints(ctx: PluginContext): Endpoint[] {
           return json(session)
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to create picker session'
-          const status = message.includes('not connected') ? 401 : 500
+          const status =
+            message.includes('not connected') || message.includes('Photos Picker scope') ? 401 : 500
           return json({ error: message }, status)
         }
       },

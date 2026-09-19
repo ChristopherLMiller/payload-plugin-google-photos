@@ -4,7 +4,7 @@ import { OAuth2Client } from 'google-auth-library'
 
 import type { GooglePhotosPluginOptions } from '../types.js'
 
-import { EMAIL_SCOPE, PICKER_SCOPE } from '../constants.js'
+import { EMAIL_SCOPE, PICKER_SCOPE, PICKER_SCOPE_MISSING_MESSAGE } from '../constants.js'
 
 export type ResolvedGoogleConfig = {
   clientId: string
@@ -47,12 +47,30 @@ export function createOAuthClient(config: ResolvedGoogleConfig): OAuth2Client {
   return new OAuth2Client(config.clientId, config.clientSecret, config.redirectUri)
 }
 
+export function hasPickerScope(scope?: null | string): boolean {
+  if (!scope) {
+    return false
+  }
+  return scope.split(/[,\s]+/).includes(PICKER_SCOPE)
+}
+
+export async function resolveGrantedScope(accessToken: string): Promise<string> {
+  const response = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+  )
+  const data = (await response.json()) as { error?: string; scope?: string }
+  if (hasPickerScope(data.scope) && data.scope) {
+    return data.scope
+  }
+
+  throw new Error(PICKER_SCOPE_MISSING_MESSAGE)
+}
+
 export function getAuthorizationUrl(client: OAuth2Client, state: string): string {
   return client.generateAuthUrl({
     access_type: 'offline',
-    include_granted_scopes: true,
     prompt: 'consent',
-    scope: [PICKER_SCOPE, EMAIL_SCOPE],
+    scope: `${PICKER_SCOPE} ${EMAIL_SCOPE}`,
     state,
   })
 }

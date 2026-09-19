@@ -117,19 +117,24 @@ Save.
 
 Apps in Testing only work for listed test users. Anyone else sees Google’s “app is in testing” error.
 
-### Scopes / Data Access — do not add the Picker scope while Testing
+### Scopes / Data Access
 
-There is **one** Photos Picker scope:
+There is **one** required Photos Picker scope. Add it under Google Auth Platform → **Data access** → Add or remove scopes (or Manually add scopes):
 
 ```
 https://www.googleapis.com/auth/photospicker.mediaitems.readonly
 ```
 
-While the app is in **Testing**, do **not** add this scope on Branding or Data Access. The plugin requests it at **Connect** time (`GET {apiRoute}/google-photos/oauth/start`). Google will show the consent screen then.
+Also enable **Google Photos Picker API** (`photospicker.googleapis.com`). Do not use the old Photos Library API.
 
-Data Access is for later **publishing / verification**, when Google requires you to declare sensitive/restricted scopes for production review. Skip it until you are ready to publish.
+If Connect works but **Launch picker** fails with `Request had insufficient authentication scopes`, the access token does not include that scope. Typical causes:
 
-The plugin also requests `https://www.googleapis.com/auth/userinfo.email` at Connect time so the admin UI can label the connected Google account. That is not the Photos Picker scope and is not what you declare for Picker verification.
+- The Picker API is not enabled on the Cloud project
+- The scope is missing from Data Access
+- Google’s granular consent screen let you uncheck Photos Picker (email-only grant)
+- You connected before the scope was configured — **Disconnect**, then **Connect** again and leave Photos Picker checked
+
+The plugin also requests `https://www.googleapis.com/auth/userinfo.email` so the admin UI can show the connected account.
 
 ## 5. Create an OAuth Web application client
 
@@ -249,7 +254,8 @@ Plugin endpoints (all under `routes.api`, default `/api`):
 | `Google Photos OAuth is not configured` | Missing `GOOGLE_PHOTOS_CLIENT_ID` / `GOOGLE_PHOTOS_CLIENT_SECRET` |
 | `redirect_uri_mismatch` | Google client redirect URI ≠ plugin callback |
 | App is in testing / access denied | Google account is not a test user |
-| `invalid_scope` / consent errors after adding scopes in Data Access while Testing | Remove the Picker scope from Data Access; let Connect request it |
+| `invalid_scope` / consent errors | Add the Picker scope under Data Access and enable Photos Picker API |
+| Launch picker: `insufficient authentication scopes` | Token lacks Picker scope — add Data Access scope, Disconnect, Connect, keep Photos Picker checked |
 | `Google did not return a refresh token` | Reconnect; the plugin already uses `prompt=consent` and `access_type=offline` |
 | Import blocked on a relationship / richText field | Set `defaultValue` or `mapMediaData`, or make the field optional |
 | Existing imports stay after Disconnect | Expected — Payload owns the files |

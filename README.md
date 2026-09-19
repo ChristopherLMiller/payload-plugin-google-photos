@@ -46,7 +46,7 @@ Options can be set on the plugin or with env vars. Options win when both are set
 
 OAuth client ID/secret belong in env, not in git. Never commit downloaded `client_secret_*.json` files.
 
-The Photos Picker scope is `https://www.googleapis.com/auth/photospicker.mediaitems.readonly`. The plugin requests it when an admin clicks **Connect**. While the Google Cloud app is in Testing, do **not** add that scope on Branding / Data Access. See [docs/setup.md](docs/setup.md) for branding, test users, redirect URIs, and production verification.
+The Photos Picker scope is `https://www.googleapis.com/auth/photospicker.mediaitems.readonly`. Add it under Google Auth Platform → Data access, enable **Google Photos Picker API**, and keep it checked on Google’s consent screen. See [docs/setup.md](docs/setup.md).
 
 ## In the admin
 
