@@ -2,7 +2,7 @@ import type { Endpoint, PayloadRequest } from 'payload'
 
 import type { GooglePhotosPluginOptions, ImportItemResult, SessionMediaPreview } from '../types.js'
 
-import { GOOGLE_PHOTOS_ID_FIELD } from '../constants.js'
+import { findExistingImport, recordImport } from '../collections/imports.js'
 import { analyzeRequiredFields, buildImportData, isTargetUploadCollection } from '../fields/required.js'
 import { createOAuthClient, getAuthorizationUrl, getGoogleEmail, resolveGoogleConfig } from '../google/oauth.js'
 import {
@@ -384,21 +384,16 @@ export function createPluginEndpoints(ctx: PluginContext): Endpoint[] {
         for (const item of items) {
           const filename = item.mediaFile?.filename
           try {
-            const existing = await req.payload.find({
-              collection: asCollectionSlug(collectionSlug),
-              depth: 0,
-              limit: 1,
-              overrideAccess: true,
-              where: {
-                [GOOGLE_PHOTOS_ID_FIELD]: {
-                  equals: item.id,
-                },
-              },
+            const existing = await findExistingImport({
+              googlePhotosId: item.id,
+              payload: req.payload,
+              req,
+              targetCollection: collectionSlug,
             })
 
-            if (existing.totalDocs > 0) {
+            if (existing) {
               results.push({
-                documentId: existing.docs[0]?.id,
+                documentId: existing.documentId,
                 filename,
                 googlePhotosId: item.id,
                 status: 'skipped',
@@ -438,6 +433,15 @@ export function createPluginEndpoints(ctx: PluginContext): Endpoint[] {
               },
               overrideAccess: false,
               user: req.user,
+            })
+
+            await recordImport({
+              documentId: created.id,
+              filename: downloaded.filename,
+              googlePhotosId: item.id,
+              payload: req.payload,
+              req,
+              targetCollection: collectionSlug,
             })
 
             results.push({

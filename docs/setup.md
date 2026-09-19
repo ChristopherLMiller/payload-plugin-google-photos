@@ -33,11 +33,26 @@ export default buildConfig({
 
 The plugin:
 
-- Adds a hidden `google-photos-oauth` collection (per-admin-user encrypted refresh tokens)
-- Injects `googlePhotosId` / `googlePhotosFilename` plus an **Import from Google Photos** list action into each target upload collection
+- Adds hidden `google-photos-oauth` and `google-photos-imports` collections (tokens and import dedupe)
+- Injects an **Import from Google Photos** list action into each target upload collection (admin UI only — it does **not** add columns to your media tables)
 - Registers API endpoints under `{apiRoute}/google-photos/...` (Payload’s API route defaults to `/api`)
 
-Use `disabled: true` to keep the schema fields but skip endpoints and the admin UI (useful when generating types).
+Use `disabled: true` to keep the plugin collections but skip endpoints and the admin UI (useful when generating types).
+
+### SQL databases (Postgres / SQLite)
+
+Installing the plugin **changes Payload schema**. Postgres and SQLite will query the new plugin tables (and, in 1.0.0–1.0.1, extra columns on every upload collection). If you skip a migration, lists fail with errors like `column "google_photos_id" does not exist`.
+
+After adding or upgrading the plugin:
+
+```bash
+pnpm payload migrate:create
+pnpm payload migrate
+```
+
+Commit the generated files under your `migrationDir` and deploy. If production already runs `payload migrate` on boot, the new migration must be in the image.
+
+From **1.0.2** the plugin no longer adds `googlePhotosId` / `googlePhotosFilename` to host upload collections. Dedupe lives in `google-photos-imports`. You still need a migration for the plugin’s own collections. If 1.0.1 already added media columns, they are unused after upgrading and can be left in place.
 
 ## 2. Plugin options vs environment variables
 

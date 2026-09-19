@@ -1,6 +1,6 @@
 {
   "name": "payload-plugin-google-photos",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Payload 3 plugin that imports Google Photos Picker selections as independent upload documents",
   "keywords": [
     "payload",

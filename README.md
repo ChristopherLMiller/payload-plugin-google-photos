@@ -42,7 +42,7 @@ Options can be set on the plugin or with env vars. Options win when both are set
 | `encryptionKey` | `GOOGLE_PHOTOS_ENCRYPTION_KEY` | 32-byte key as 64 hex chars or base64. Falls back to `PAYLOAD_SECRET` |
 | `collections` | — | Optional upload-collection allowlist |
 | `mapMediaData` | — | Last programmatic override after auto-fill and the import form |
-| `disabled` | — | Keeps schema fields, skips endpoints and admin UI |
+| `disabled` | — | Keeps plugin collections, skips endpoints and admin UI |
 
 OAuth client ID/secret belong in env, not in git. Never commit downloaded `client_secret_*.json` files.
 
@@ -57,7 +57,7 @@ Each target upload collection list view gets **Import from Google Photos**:
 3. Fill any leftover required simple fields **once for the batch**.
 4. **Import** downloads original bytes (`${baseUrl}=d`, or `=dv` for video) and creates documents with Local API `payload.create({ collection, data, file })`.
 
-Uploads use the destination collection’s existing storage adapter, thumbnails, and `imageSizes`. `googlePhotosId` is only a hidden dedupe key.
+Uploads use the destination collection’s existing storage adapter, thumbnails, and `imageSizes`. Import IDs are stored in the hidden `google-photos-imports` collection so host media tables are not altered.
 
 Required-field strategy:
 

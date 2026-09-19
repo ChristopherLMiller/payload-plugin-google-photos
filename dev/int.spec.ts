@@ -32,17 +32,19 @@ function getListActions(collection: { admin?: { components?: { views?: { list?: 
 }
 
 describe('collection detection', () => {
-  test('adds a hidden oauth collection', () => {
+  test('adds hidden plugin collections without mutating media schema', () => {
     expect(coll('google-photos-oauth')).toBeDefined()
     expect(coll('google-photos-oauth').config.admin?.hidden).toBe(true)
+    expect(coll('google-photos-imports')).toBeDefined()
+    expect(coll('google-photos-imports').config.admin?.hidden).toBe(true)
   })
 
-  test('injects google photos fields and list action into upload collections', () => {
+  test('injects a list action into upload collections without extra media fields', () => {
     const media = coll('media').config
     const names = fieldNames(media.fields)
 
-    expect(names).toContain(GOOGLE_PHOTOS_ID_FIELD)
-    expect(names).toContain(GOOGLE_PHOTOS_FILENAME_FIELD)
+    expect(names).not.toContain(GOOGLE_PHOTOS_ID_FIELD)
+    expect(names).not.toContain(GOOGLE_PHOTOS_FILENAME_FIELD)
     expect(getListActions(media)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -90,8 +92,8 @@ describe('import mapping', () => {
     })
 
     expect(analysis.data.alt).toBe('beach.jpg')
-    expect(analysis.data[GOOGLE_PHOTOS_ID_FIELD]).toBe('photo-1')
-    expect(analysis.data[GOOGLE_PHOTOS_FILENAME_FIELD]).toBe('beach.jpg')
+    expect(analysis.data[GOOGLE_PHOTOS_ID_FIELD]).toBeUndefined()
+    expect(analysis.data[GOOGLE_PHOTOS_FILENAME_FIELD]).toBeUndefined()
     expect(analysis.promptFields).toHaveLength(0)
     expect(analysis.blockedFields).toHaveLength(0)
   })

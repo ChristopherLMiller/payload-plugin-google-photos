@@ -1,7 +1,9 @@
 export const PLUGIN_PACKAGE_NAME = 'payload-plugin-google-photos'
 export const OAUTH_COLLECTION_SLUG = 'google-photos-oauth'
+export const IMPORTS_COLLECTION_SLUG = 'google-photos-imports'
 export const GOOGLE_PHOTOS_ID_FIELD = 'googlePhotosId'
 export const GOOGLE_PHOTOS_FILENAME_FIELD = 'googlePhotosFilename'
+export const PLUGIN_COLLECTION_SLUGS = [OAUTH_COLLECTION_SLUG, IMPORTS_COLLECTION_SLUG] as const
 export const PICKER_SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly'
 export const EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email'
 export const PICKER_API_BASE = 'https://photospicker.googleapis.com/v1'

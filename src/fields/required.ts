@@ -7,6 +7,7 @@ import {
   BLOCKED_FIELD_TYPES,
   GOOGLE_PHOTOS_FILENAME_FIELD,
   GOOGLE_PHOTOS_ID_FIELD,
+  PLUGIN_COLLECTION_SLUGS,
   SIMPLE_FIELD_TYPES,
   UPLOAD_MANAGED_FIELDS,
 } from '../constants.js'
@@ -174,11 +175,6 @@ export function buildAutoFill(args: {
     }
   }
 
-  if (args.item?.id) {
-    setPathValue(data, GOOGLE_PHOTOS_ID_FIELD, args.item.id)
-  }
-  setPathValue(data, GOOGLE_PHOTOS_FILENAME_FIELD, args.filename)
-
   for (const { name, field } of args.leaves) {
     if (skipField(name)) {
       continue
@@ -306,9 +302,9 @@ export function isUploadCollection(collection: CollectionConfig): boolean {
 export function isTargetUploadCollection(
   collection: CollectionConfig,
   allowlist?: string[],
-  oauthSlug?: string,
+  skipSlugs: readonly string[] = PLUGIN_COLLECTION_SLUGS,
 ): boolean {
-  if (oauthSlug && collection.slug === oauthSlug) {
+  if (skipSlugs.includes(collection.slug)) {
     return false
   }
   if (!isUploadCollection(collection)) {

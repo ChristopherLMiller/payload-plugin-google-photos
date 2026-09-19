@@ -43,7 +43,7 @@ export type GooglePhotosPluginOptions = {
    */
   collections?: string[]
   /**
-   * When true, skip endpoints and admin UI. Schema additions stay in place.
+   * When true, skip endpoints and admin UI. Plugin collections stay in place for migrations.
    */
   disabled?: boolean
   /**
