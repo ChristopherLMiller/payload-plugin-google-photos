@@ -4,11 +4,14 @@
 
 This repo is a Payload plugin (`src/`) plus a sample app (`dev/`).
 
+Package `exports` point at compiled `dist/` (not `src/`). `npm publish` does not rewrite those fields from `publishConfig`, so the published tarball must already list `dist`. Local `dev/` still typechecks against `src/` via `dev/tsconfig.json` paths. Run `pnpm build` before generating the import map or running the sample app so Node can resolve the package.
+
 ```bash
 cp dev/.env.example dev/.env
 # set DATABASE_URL to a local MongoDB instance
 # set GOOGLE_PHOTOS_CLIENT_ID / GOOGLE_PHOTOS_CLIENT_SECRET
 pnpm install
+pnpm build
 pnpm dev
 ```
 

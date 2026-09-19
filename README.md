@@ -14,12 +14,6 @@ pnpm add payload-plugin-google-photos
 
 `payload` `^3` is a peer dependency.
 
-Until the package is on npm, install from GitHub:
-
-```bash
-pnpm add github:ChristopherLMiller/payload-plugin-google-photos#v1.0.0
-```
-
 ## Usage
 
 ```ts

@@ -131,6 +131,30 @@ describe('import mapping', () => {
   })
 })
 
+describe('package exports', () => {
+  test('points npm consumers at compiled dist, not TypeScript source', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const { dirname, resolve } = await import('node:path')
+    const { fileURLToPath } = await import('node:url')
+    const pkgPath = resolve(dirname(fileURLToPath(import.meta.url)), '../package.json')
+    const pkg = JSON.parse(await readFile(pkgPath, 'utf8')) as {
+      exports: Record<string, { default?: string; import?: string; types?: string }>
+      main: string
+      types: string
+    }
+
+    for (const entry of [pkg.exports['.'], pkg.exports['./client'], pkg.exports['./rsc']]) {
+      expect(entry.import).toMatch(/^\.\/dist\//)
+      expect(entry.types).toMatch(/^\.\/dist\//)
+      expect(entry.default).toMatch(/^\.\/dist\//)
+      expect(entry.import).not.toContain('/src/')
+    }
+
+    expect(pkg.main).toBe('./dist/index.js')
+    expect(pkg.types).toBe('./dist/index.d.ts')
+  })
+})
+
 describe('token encryption', () => {
   test('round-trips AES-256-GCM secrets', () => {
     const secret = 'unit-test-encryption-key'
